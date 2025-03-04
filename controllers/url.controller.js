@@ -51,7 +51,7 @@ exports.shortenUrl = async (req, res) => {
     
     return res.status(201).json({
       success: true,
-      shortUrl: `${process.env.BASE_URL}/${shortCode}`,
+      shortUrl: `${"https://ola-url-limit.onrender.com"}/${shortCode}`,
       shortCode,
       expiresAt
     });
