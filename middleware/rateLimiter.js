@@ -49,27 +49,32 @@
 
 const Url = require('../models/url.model');
 
+// const getClientIP = (req) => {
+//   const forwardedFor = req.headers['x-forwarded-for'];
+//   if (forwardedFor) {
+//     // Split and take the first (client) IP
+//     const clientIP = forwardedFor.split(',')[0].trim();
+//     const maskedIP = clientIP.split('.').slice(0, 3).join('.') + '.0';
+//     return maskedIP;
+//   }
+//   const realIP = 
+//     req.headers['x-real-ip'] || 
+//     req.headers['cf-connecting-ip'] ||
+//     req.socket.remoteAddress || 
+//     '0.0.0.0';
+//   const ipParts = realIP.split('.');
+//   if (ipParts.length > 3) {
+//     return ipParts.slice(0, 3).join('.') + '.0';
+//   }
+
+//   return realIP;
+// };
+
 const getClientIP = (req) => {
   const forwardedFor = req.headers['x-forwarded-for'];
-  if (forwardedFor) {
-    // Split and take the first (client) IP
-    const clientIP = forwardedFor.split(',')[0].trim();
-    const maskedIP = clientIP.split('.').slice(0, 3).join('.') + '.0';
-    return maskedIP;
-  }
-  const realIP = 
-    req.headers['x-real-ip'] || 
-    req.headers['cf-connecting-ip'] ||
-    req.socket.remoteAddress || 
-    '0.0.0.0';
-  const ipParts = realIP.split('.');
-  if (ipParts.length > 3) {
-    return ipParts.slice(0, 3).join('.') + '.0';
-  }
-
-  return realIP;
+  if (forwardedFor) return forwardedFor.split(',')[0].trim();
+  return req.headers['x-real-ip'] || req.headers['cf-connecting-ip'] || req.socket.remoteAddress || '0.0.0.0';
 };
-
 
 const rateLimiter = async (req, res, next) => {
   try {
