@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 
 const urlSchema = new mongoose.Schema({
@@ -12,8 +13,14 @@ const urlSchema = new mongoose.Schema({
   },
   createdAt: {
     type: Date,
-    default: Date.now,
-    expires: 60 * 60 * 24 * process.env.URL_EXPIRY_DAYS, // ttl index to out after 7 days expiry
+    default: Date.now
+  },
+  expiresAt: {
+    type: Date,
+    default: function () {
+      return new Date(Date.now() + 1000 * 60 * 60 * 24 * process.env.URL_EXPIRY_DAYS);
+    },
+    index: { expires: 0 } // TTL Index for automatic deletion
   },
   clicks: {
     type: Number,
@@ -24,5 +31,8 @@ const urlSchema = new mongoose.Schema({
     required: true,
   }
 });
+
+// Ensure index is created for TTL
+urlSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Url', urlSchema);
