@@ -1,21 +1,11 @@
-
-const { nanoid } = require('nanoid');
+// File: controllers/url.controller.js
+const { nanoid } = require('nanoid'); // This works with nanoid v3.x
 const validUrl = require('valid-url');
 const Url = require('../models/url.model');
 
-
-const getClientIP = (req) => {
-  // Get IP with fallbacks for various deployment environments
-  const ip = 
-    (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || 
-    req.headers['x-real-ip'] || 
-    req.headers['cf-connecting-ip'] ||
-    req.socket.remoteAddress || 
-    '0.0.0.0';
-  
-  return ip;
-};
-
+/**
+ * Shorten a URL
+ */
 exports.shortenUrl = async (req, res) => {
   try {
     const { originalUrl } = req.body;
@@ -29,12 +19,10 @@ exports.shortenUrl = async (req, res) => {
     }
 
     // Get IP address for rate limiting
-    const ipAddress = getClientIP(req);
-    console.log(`Shortening URL from IP: ${ipAddress}`);
+    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     
     // Generate a short code
-    const shortCodeLength = parseInt(process.env.SHORTCODE_LENGTH) || 6;
-    const shortCode = nanoid(shortCodeLength);
+    const shortCode = nanoid(parseInt(process.env.SHORTCODE_LENGTH) || 6);
     
     // Create a new URL entry
     const urlEntry = new Url({
@@ -45,15 +33,11 @@ exports.shortenUrl = async (req, res) => {
     
     await urlEntry.save();
     
-    // Calculate expiry date
-    const expiryDays = parseInt(process.env.URL_EXPIRY_DAYS) || 7;
-    const expiresAt = new Date(Date.now() + (expiryDays * 24 * 60 * 60 * 1000));
-    
     return res.status(201).json({
       success: true,
-      shortUrl: `${"https://ola-url-limit.onrender.com"}/${shortCode}`,
+      shortUrl: `${process.env.BASE_URL}/${shortCode}`,
       shortCode,
-      expiresAt
+      expiresAt: new Date(Date.now() + (process.env.URL_EXPIRY_DAYS * 24 * 60 * 60 * 1000))
     });
   } catch (error) {
     console.error('Error shortening URL:', error);
@@ -64,7 +48,9 @@ exports.shortenUrl = async (req, res) => {
   }
 };
 
-
+/**
+ * Redirect to the original URL
+ */
 exports.redirectToUrl = async (req, res) => {
   try {
     const { shortCode } = req.params;
@@ -75,7 +61,7 @@ exports.redirectToUrl = async (req, res) => {
     if (!url) {
       return res.status(404).json({
         success: false,
-        message: 'URL not found or has expired'
+        message: 'URL not found'
       });
     }
     
@@ -94,6 +80,9 @@ exports.redirectToUrl = async (req, res) => {
   }
 };
 
+/**
+ * Get stats for a URL
+ */
 exports.getUrlStats = async (req, res) => {
   try {
     const { shortCode } = req.params;
@@ -104,13 +93,9 @@ exports.getUrlStats = async (req, res) => {
     if (!url) {
       return res.status(404).json({
         success: false,
-        message: 'URL not found or has expired'
+        message: 'URL not found'
       });
     }
-    
-    // Calculate expiry date
-    const expiryDays = parseInt(process.env.URL_EXPIRY_DAYS) || 7;
-    const expiresAt = new Date(url.createdAt.getTime() + (expiryDays * 24 * 60 * 60 * 1000));
     
     // Return the stats
     return res.status(200).json({
@@ -119,8 +104,7 @@ exports.getUrlStats = async (req, res) => {
       originalUrl: url.originalUrl,
       clicks: url.clicks,
       createdAt: url.createdAt,
-      expiresAt,
-      createdBy: url.ipAddress.split('.').slice(0, 2).join('.') + '.*.*' // Partial IP for privacy
+      expiresAt: new Date(url.createdAt.getTime() + (process.env.URL_EXPIRY_DAYS * 24 * 60 * 60 * 1000))
     });
   } catch (error) {
     console.error('Error getting URL stats:', error);
@@ -130,4 +114,3 @@ exports.getUrlStats = async (req, res) => {
     });
   }
 };
-
