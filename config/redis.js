@@ -2,7 +2,7 @@ const { createClient } = require('redis');
 
 // Create a Redis client
 const redisClient = createClient({
-  url: process.env.REDIS_URL, // e.g., "rediss://default:MY_PASSWORD@MY_UPSTASH_URL:6379"
+  url: process.env.REDIS_URL, 
 });
 
 redisClient.on('error', (err) => {
